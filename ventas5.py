@@ -19,6 +19,9 @@ cur.execute('''CREATE TABLE IF NOT EXISTS products
     (_id INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE, name TEXT, price INTEGER,supplier_name TEXT)''')
 cur.execute('''CREATE TABLE IF NOT EXISTS customers
     (_id INTEGER PRIMARY KEY UNIQUE, name TEXT, last_name TEXT, phone INTEGER)''')
+cur.execute('''CREATE TABLE IF NOT EXISTS sales
+    (_id INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE, product_id INTEGER, 
+    total INTEGER, FOREIGN KEY(product_id) REFERENCES products(_id))''')
 
 
 conn.commit()
@@ -163,7 +166,7 @@ class Ui_Sales_System(object):
         self.tableWidget_sale.setObjectName("tableWidget_sale")
         self.tableWidget_sale.setColumnCount(0)
         self.tableWidget_sale.setRowCount(0)
-        self.btn_sale = QtWidgets.QPushButton(parent=self.tab4)
+        self.btn_sale = QtWidgets.QPushButton(parent=self.tab4,clicked=lambda: self.purchase())
         self.btn_sale.setGeometry(QtCore.QRect(480, 350, 75, 31))
         self.btn_sale.setObjectName("btn_sale")
         self.label_8 = QtWidgets.QLabel(parent=self.tab4)
@@ -172,7 +175,7 @@ class Ui_Sales_System(object):
         self.btn_qty = QtWidgets.QLineEdit(parent=self.tab4)
         self.btn_qty.setGeometry(QtCore.QRect(290, 50, 71, 31))
         self.btn_qty.setObjectName("btn_qty")
-        self.btn_cancel = QtWidgets.QPushButton(parent=self.tab4)
+        self.btn_cancel = QtWidgets.QPushButton(parent=self.tab4,clicked=lambda: self.cancel_sale())
         self.btn_cancel.setGeometry(QtCore.QRect(310, 350, 75, 31))
         self.btn_cancel.setObjectName("btn_cancel")
         self.label_9 = QtWidgets.QLabel(parent=self.tab4)
@@ -247,6 +250,7 @@ class Ui_Sales_System(object):
         self.listWidget_supp.itemClicked.connect(self.grab_one_supplier)
         self.listWidget_cust.itemClicked.connect(self.grab_one_customer)
         self.get_supplier()
+        self.report_sales()
         
     def grab_all(self):
         conn = sqlite3.connect('sales_system.db')
@@ -549,14 +553,55 @@ class Ui_Sales_System(object):
             self.tableWidget_sale.setItem(0,2,QtWidgets.QTableWidgetItem(str(product[2])))
             self.tableWidget_sale.setItem(0,3,QtWidgets.QTableWidgetItem(str(product[3])))
             self.tableWidget_sale.setItem(0,4,QtWidgets.QTableWidgetItem(str(sub_total)))
-            
-         
+        
         self.ln_search.setText("")   
         self.btn_qty.setText("1")
         total = self.total_sale()
         self.btn_total.setText(str(total))
         
         conn.close()
+        
+    def cancel_sale(self):
+        self.tableWidget_sale.setRowCount(0)
+        self.btn_total.setText("0")
+        self.ln_search.setText("")
+        
+    def purchase(self):
+        conn = sqlite3.connect('sales_system.db')
+        cur = conn.cursor()
+        rows = self.tableWidget_sale.rowCount()
+        for row in range(rows):
+            cur.execute("INSERT INTO sales VALUES (NULL,?,?)", (int(self.tableWidget_sale.item(row,0).text()),self.btn_total.text(),))
+            conn.commit()
+        
+        cur.close()
+        conn.close()
+        
+    def report_sales(self):
+        conn = sqlite3.connect('sales_system.db')
+        cur = conn.cursor()
+        
+        cur.execute("SELECT * FROM sales")
+        
+        sales = cur.fetchall()
+        print(sales)
+        conn.commit()
+        conn.close()
+        
+        self.tableWidget_report.setColumnCount(2)
+        self.tableWidget_report.setHorizontalHeaderLabels(['PRODUCT_ID', 'TOTAL'])
+        
+        if sales:
+            for i,item in enumerate(sales):
+                self.tableWidget_report.insertRow(0)
+                for j in range(len(item)):
+                    self.tableWidget_report.setItem(0,j,QtWidgets.QTableWidgetItem(str(item[j])))
+                
+                    
+                    
+           
+            
+        
         
     def total_sale(self):
         total = 0
