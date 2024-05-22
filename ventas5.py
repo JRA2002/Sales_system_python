@@ -8,31 +8,16 @@
 
 from PyQt6 import QtCore, QtGui, QtWidgets
 import sqlite3
+from PyQt6.QtWidgets import QMessageBox
+import connection as conn
 
-conn = sqlite3.connect('sales_system.db')
-
-cur = conn.cursor()
-
-cur.execute('''CREATE TABLE IF NOT EXISTS supplier
-    (_id INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE, name TEXT)''')
-cur.execute('''CREATE TABLE IF NOT EXISTS products
-    (_id INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE, name TEXT, price INTEGER,supplier_name TEXT)''')
-cur.execute('''CREATE TABLE IF NOT EXISTS customers
-    (_id INTEGER PRIMARY KEY UNIQUE, name TEXT, last_name TEXT, phone INTEGER)''')
-cur.execute('''CREATE TABLE IF NOT EXISTS sales
-    (_id INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE, product_id INTEGER, 
-    total INTEGER, FOREIGN KEY(product_id) REFERENCES products(_id))''')
-
-
-conn.commit()
-
-cur.close()
-conn.close()
+conn.Connection()
 
 class Ui_Sales_System(object):
+
     def setupUi(self, Sales_System):
         Sales_System.setObjectName("Sales_System")
-        Sales_System.resize(780, 459)
+        Sales_System.resize(780, 450)
         self.centralwidget = QtWidgets.QWidget(parent=Sales_System)
         self.centralwidget.setObjectName("centralwidget")
         self.btn_tab1 = QtWidgets.QPushButton(parent=self.centralwidget,clicked=lambda: self.change_tab1())
@@ -251,6 +236,16 @@ class Ui_Sales_System(object):
         self.listWidget_cust.itemClicked.connect(self.grab_one_customer)
         self.get_supplier()
         self.report_sales()
+        self.ln_pro_id.textChanged.connect(self.validate_id)
+        self.ln_price.textChanged.connect(self.validate_price)
+        self.ln_name.textChanged.connect(self.validate_string)
+        #self.ln_supp_id.textChanged.connect(self.validate_digit)
+        self.ln_supplier.textChanged.connect(self.validate_string)
+        #self.ln_doc.textChanged.connect(self.validate_digit)
+        self.ln_name_cus.textChanged.connect(self.validate_string)
+        self.ln_last_cus.textChanged.connect(self.validate_string)
+        #self.ln_phone_cus.textChanged.connect(self.validate_digit)
+        #self.btn_qty.textChanged.connect(self.validate_digit)
         
     def grab_all(self):
         conn = sqlite3.connect('sales_system.db')
@@ -267,6 +262,38 @@ class Ui_Sales_System(object):
         
             self.listWidget.addItem(str(item[1]))
              
+    def validate_price(self):
+        
+        price = self.ln_price.text()
+
+        if price.isdigit() or not price:
+            print(price)
+            self.ln_price.setStyleSheet("background-color: white;")
+            return True
+        else:
+            self.ln_price.setStyleSheet("background-color: red;")
+            return False
+    def validate_id(self):
+        
+        _id = self.ln_pro_id.text()
+        
+        if _id.isdigit() or not _id:
+            self.ln_pro_id.setStyleSheet("background-color: white;")
+            return True
+        else:
+            self.ln_pro_id.setStyleSheet("background-color: red;")
+            return False
+        
+        
+    def validate_string(self):
+        name = self.ln_name.text()
+        if name.isalpha() or not name:
+            self.ln_name.setStyleSheet("background-color: white;")
+            return True
+        else:
+            self.ln_name.setStyleSheet("background-color: red;")
+            return False
+        
     def grab_one(self):
         conn = sqlite3.connect('sales_system.db')
         cur = conn.cursor()
@@ -290,18 +317,22 @@ class Ui_Sales_System(object):
         conn = sqlite3.connect('sales_system.db')
         cur = conn.cursor()
         
-        _id = self.ln_pro_id.text()
+        _id = int(self.ln_pro_id.text())
         name = self.ln_name.text()
-        price = self.ln_price.text()
-        supplier_name = self.combo_supplier.currentText()
+        price = int(self.ln_price.text())
+        supplier_name = self.combo_supplier.currentText()      
+
         
         cur.execute("INSERT INTO products VALUES (?, ?,?,?)", (_id,name, price,supplier_name))
+    
         conn.commit()
         cur.close()
         
         self.ln_name.setText("")
         self.ln_price.setText("")
         self.ln_pro_id.setText("")
+        
+        self.messageBox()
         
     def delete_product(self):
         
@@ -355,6 +386,7 @@ class Ui_Sales_System(object):
         
         self.ln_supplier.setText("")
         self.ln_supp_id.setText("")
+        self.messageBox()
         
     def get_supplier(self):
         conn = sqlite3.connect('sales_system.db')
@@ -452,6 +484,7 @@ class Ui_Sales_System(object):
         self.ln_phone_cus.setText("")
         
         conn.close()
+        self.messageBox()
         
     def update_customer(self):
         
@@ -576,6 +609,8 @@ class Ui_Sales_System(object):
         
         cur.close()
         conn.close()
+        self.tableWidget_sale.clearContents()
+        self.messageBox_venta()
         
     def report_sales(self):
         conn = sqlite3.connect('sales_system.db')
@@ -597,11 +632,20 @@ class Ui_Sales_System(object):
                 for j in range(len(item)):
                     self.tableWidget_report.setItem(0,j,QtWidgets.QTableWidgetItem(str(item[j])))
                 
-                    
-                    
-           
+    def messageBox(self):
+            msg = QMessageBox()
+            msg.setWindowTitle("Message")
+            msg.setText("Saved to Database")
+            msg.setIcon(QMessageBox.Icon.Information)
+            x = msg.exec()  
             
-        
+    def messageBox_venta(self):
+            msg = QMessageBox()
+            msg.setWindowTitle("Message")
+            msg.setText("Sale Done! ")
+            msg.setIcon(QMessageBox.Icon.Information)
+            x = msg.exec()
+                       
         
     def total_sale(self):
         total = 0
